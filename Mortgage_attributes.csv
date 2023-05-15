@@ -1,0 +1,2 @@
+mortgage_term,loan_id,balance,note_rate,servicing,amortization_term,balloon_term,loan_age,initialResetPeriod,margin,LifeFloor,LifeCap,InitialRateCap,pReset,PeriodicCap,settle_day,days_in_month,payment_delay,BEY,price,accrued_interest,staticCPR,staticCDR,staticSeverity,LTV
+30-year,ABC123,5000000,0.05,0.0025,359,360,1,36,0.02,0.02,0.07,0.005,12,0.02,25,30,15,0.04,0.04,3,0.05,0.01,0.25,80
