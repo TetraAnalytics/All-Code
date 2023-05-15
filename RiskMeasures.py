@@ -1,52 +1,53 @@
-import math
+from BondDayCount import year_fraction
 
 
 def bond_greeks(b):
-    yr_fraction = year_fraction(b["valueDate"], b["startDate"], b["nextCouponDate"], b["dayCnt"], b["freq"])
-    month = 1
-    while b["cashflow"][month]["couponCash"] != 0:
-        b["macaulay_duration"] += (month + yr_fraction) * b["cashflow"][month]["couponCash"] / (
-                1 + b["yld"] / b["freq"]) ** month
-        b["convexity"] += (1 / (1 + b["yld"] / b["freq"]) ** 2) * b["cashflow"][month]["couponCash"] / (
-                1 + b["yld"] / b["freq"]) ** month * ((month + yr_fraction) ** 2 + month)
-        month += 1
+    yr_fraction = year_fraction(b.value_date, b.start_date, b.next_coupon_date, b.day_count, b.freq)
+    i = 1
+    while b.cashflow[i].coupon_cash != 0:
+        b.macaulay_duration += (i + yr_fraction) * b.cashflow[i].coupon_cash / (
+                1 + b.yld / b.freq) ** i
+        b.convexity += (1 / (1 + b.yld / b.freq) ** 2) * b.cashflow[i].coupon_cash / (
+                1 + b.yld / b.freq) ** i * ((i + yr_fraction) ** 2 + i)
+        i += 1
 
     # maturity cash flows
-    month -= 1
-    b["macaulay_duration"] += (month + yr_fraction) * b["notional"] / (1 + b["yld"] / b["freq"]) ** month
-    b["macaulay_duration"] /= (b["price"] * b["freq"])
+    i -= 1
+    b.macaulay_duration += (i + yr_fraction) * b.notional_balance / (1 + b.yld / b.freq) ** i
+    b.macaulay_duration /= (b.price * b.freq)
 
-    b["convexity"] += (1 / (1 + b["yld"] / b["freq"]) ** 2) * b["notional"] / (1 + b["yld"] / b["freq"]) ** month * (
-            (month + yr_fraction) ** 2 + month + yr_fraction)
-    b["convexity"] = b["convexity"] / b["price"] / b["freq"] ** 2 if b["notional"] > 10 else 0
+    b.convexity += (1 / (1 + b.yld / b.freq) ** 2) * b.notional_balance / (1 + b.yld / b.freq) ** i * (
+            (i + yr_fraction) ** 2 + i + yr_fraction)
+    b.convexity = b.convexity / b.price / b.freq ** 2 if b.notional_balance > 10 else 0
 
-    b["modified_duration"] = b["macaulay_duration"] / (1 + b["yld"] / b["freq"])
+    b.modified_duration = b.macaulay_duration / (1 + b.yld / b.freq)
+
+    print("Modified Duration = ", round(b.modified_duration, 2), " ", "Convexity = ", round(b.convexity,2))
 
 
 def mortgage_greeks(m):
-    month = 1
-    wal = 0
+    w = 0.0
 
-    while m["cashflows"][int(month)]["scheduled_interest"] > 0 and month < 360:
-        cashflow_term = m["cashflows"][month]["scheduled_interest"] + m["cashflows"][month]["scheduled_principal"] + \
-                        m["cashflows"][month]["prepay_principal"] + m["cashflows"][month]["default_principal"] - \
-                        m["cashflows"][month]["default_loss"]
-        m["macaulay_duration"] += month * cashflow_term / (1 + m["BEY"] / 12) ** (
-                month + m["delay"] / 30 + (30 - m["settle_day"]) / 30)
-        principal_cash = m["cashflows"][month]["scheduled_principal"] + m["cashflows"][month]["prepay_principal"] + \
-                         m["cashflows"][month]["default_principal"] - m["cashflows"][month]["default_loss"]
-        wal += principal_cash * (month + (m["delay"] - 1) / 30 + (30 - min(30, m["settle_day"]) - 1) / 30 - 1) / (
-                12 * m["balance"])
-        month += 1
+    for i in range(1, m.amortization_term):
+        m.macaulay_duration += i * (
+                m.cashflows[i].scheduled_interest +
+                m.cashflows[i].scheduled_principal +
+                m.cashflows[i].prepayment_principal +
+                m.cashflows[i].default_principal -
+                m.cashflows[i].default_loss
+        ) / (1 + m.BEY / 12) ** (i + m.payment_delay / 30 + (30 - m.settle_day) / 30)
 
-    m["macaulay_duration"] = m["macaulay_duration"] / (m["price"] * m["balance"]) * 100 / 12 + (
-            ((m["delay"] + 1) - (m["settle_day"])) / 31) / 12
-    m["modified_duration"] = m["macaulay_duration"] / (1 + m["BEY"] / 2)
+        p = m.cashflows[i].scheduled_principal + m.cashflows[i].prepayment_principal + m.cashflows[
+            i].default_principal - \
+            m.cashflows[i].default_loss
 
-    m["wal"] = wal
+        w += p * (i + (m.payment_delay - 1) / 30 + (30 - min(30, m.settle_day) - 1) / 30 - 1) / (12 * m.balance)
 
-# After converting the Excel VBA code to Python, you can use the `bond_greeks` and `mortgage_greeks` functions
-# by passing the respective bond and mortgage dictionaries as arguments.
-# Please note that the `year_fraction` function
-# and the required data structures for bond and mortgage are not provided in your code snippet.
-# Make sure to define them properly before using the functions.
+        i += 1
+
+    m.macaulay_duration = m.macaulay_duration / (m.price * m.balance) * 100 / 12
+    m.modified_duration = m.macaulay_duration / (1 + m.BEY / 2)
+
+    m.weighted_average_life = w
+
+    return
